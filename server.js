@@ -8,7 +8,7 @@ const Bcrypt = require('bcrypt');
 const JWT = require('jsonwebtoken');
 const { Op } = require('sequelize');
 const Cors = require('cors');
-
+// config file will hold MySQL params, JWT seceret, and the hasded admin password
 const { jwtSecret, adminAuthKey, hashedAdminPassword } = require('./config');
 // database is already created and initialized in sequelize_setup.js
 const { 
