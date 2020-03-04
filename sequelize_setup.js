@@ -195,7 +195,7 @@ TransactionDetails.belongsTo(VendorItem, {
 });
 
 // pass in {force:true} to reset the database
-sequelize.sync({force:true}).then(() => {
+sequelize.sync().then(() => {
   // make all credit cards start at 1000
   sequelize.query("ALTER TABLE creditcard AUTO_INCREMENT = 1000");
 

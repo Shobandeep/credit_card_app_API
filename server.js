@@ -7,7 +7,6 @@ const Express = require('express');
 const Bcrypt = require('bcrypt');
 const JWT = require('jsonwebtoken');
 const { Op } = require('sequelize');
-const Cors = require('cors');
 // config file will hold MySQL params, JWT seceret, and the hasded admin password
 const { jwtSecret, adminAuthKey, hashedAdminPassword } = require('./config');
 // database is already created and initialized in sequelize_setup.js
@@ -28,15 +27,12 @@ const {
   ***********
 */
 let app = Express();
+let router = Express.Router();
 const PORT = 5000;
-app.use(Express.static(__dirname + '/res'));
+router.use(Express.static(__dirname + '/res'));
 app.use(Express.urlencoded({extended: true}));
 app.use(Express.json());  
-
-let corsOptions = {
-  origin: 'http://localhost:4200',
-  optionsSuccessStatus: 200 
-};
+app.use('/api', router)
 
 app.listen(PORT, () => {
   console.log(`server started, listen on port ${PORT}`);
@@ -49,7 +45,7 @@ app.listen(PORT, () => {
   *****************
 */
 
-app.get('/vendors', Cors(corsOptions), (req, res) => {
+router.get('/vendors', (req, res) => {
   Vendor.findAll({
     where: {
       vendorId: {
@@ -67,7 +63,7 @@ app.get('/vendors', Cors(corsOptions), (req, res) => {
   });  
 });
 
-app.get('/vendoritems/:name', Cors(corsOptions), async (req, res) => {
+router.get('/vendoritems/:name', async (req, res) => {
   let name = req.params.name;
   let vendor = await Vendor.findAll({
     where : {
@@ -105,8 +101,8 @@ const emailRegex = RegExp("[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$");
 const nameRegex = RegExp("^[a-zA-Z]+$");
 const saltRounds = 10;
 
-app.options('/register', Cors(corsOptions))
-app.post('/register', Cors(corsOptions), async (req, res) => {
+
+router.post('/register', async (req, res) => {
   let user = req.body;
 
   // validate email and password
@@ -158,8 +154,7 @@ app.post('/register', Cors(corsOptions), async (req, res) => {
   }
 });
 
-app.options('/login', Cors(corsOptions))
-app.post('/login', Cors(corsOptions), async (req, res) => {
+router.post('/login', async (req, res) => {
   let user = req.body;
 
   // validate email and password
@@ -203,8 +198,7 @@ app.post('/login', Cors(corsOptions), async (req, res) => {
   }
 });
 
-app.options('/auth', Cors(corsOptions))
-app.post('/auth', Cors(corsOptions), async (req, res) => {
+router.post('/auth', async (req, res) => {
   let user = req.body;
   let auth = await authenticate(user);
   if(auth.success)
@@ -213,8 +207,7 @@ app.post('/auth', Cors(corsOptions), async (req, res) => {
     res.json({ authorized: false });
 });
 
-app.options('/apply_for_card', Cors(corsOptions))
-app.post('/apply_for_card', Cors(corsOptions), async (req, res) => {
+router.post('/apply_for_card', async (req, res) => {
   let user = req.body;
   let auth = await authenticate(user);
   if(auth.error) {
@@ -243,8 +236,7 @@ app.post('/apply_for_card', Cors(corsOptions), async (req, res) => {
 });
 
 // gets a list of all the user's cards
-app.options('/cards', Cors(corsOptions))
-app.post('/cards', Cors(corsOptions), async (req, res) => { 
+router.post('/cards', async (req, res) => { 
   let user = req.body;
   let auth = await authenticate(user);
   if(auth.error) {
@@ -255,8 +247,7 @@ app.post('/cards', Cors(corsOptions), async (req, res) => {
 });
 
 // gets a list of all transactions made by this card
-app.options('/card_transactions', Cors(corsOptions))
-app.post('/card_transactions', Cors(corsOptions), async (req, res) => {
+router.post('/card_transactions', async (req, res) => {
   let user = req.body;
   let auth = await authenticate(user);
   if(auth.error) {
@@ -268,8 +259,7 @@ app.post('/card_transactions', Cors(corsOptions), async (req, res) => {
 });
 
 // gets a list of all transactions made by this card
-app.options('/transaction_details', Cors(corsOptions))
-app.post('/transaction_details', Cors(corsOptions), async (req, res) => {
+router.post('/transaction_details', async (req, res) => {
   let user = req.body;
   let auth = await authenticate(user);
   if(auth.error) {
@@ -281,8 +271,7 @@ app.post('/transaction_details', Cors(corsOptions), async (req, res) => {
 });
 
 // process an order
-app.options('/transaction', Cors(corsOptions))
-app.post('/transaction', Cors(corsOptions), async (req, res) => {
+router.post('/transaction', async (req, res) => {
   let user = req.body.user;
   let items = req.body.items;
   let cardNumber = req.body.cardNumber;
@@ -391,8 +380,7 @@ app.post('/transaction', Cors(corsOptions), async (req, res) => {
 });
 
 // make a payment
-app.options('/payment', Cors(corsOptions))
-app.post('/payment', Cors(corsOptions), async (req, res) => {
+router.post('/payment', async (req, res) => {
   let cardNumber = req.body.cardNumber;
   let amount = parseFloat(req.body.amount.toFixed(2));
   try {
@@ -425,7 +413,7 @@ app.post('/payment', Cors(corsOptions), async (req, res) => {
       || amount > parseFloat(card[0].creditLimit) 
     ) throw {
       myError: true,
-      errorMsg: 'payment amount is not valid, you cannot pay more than the credit limit'
+      errorMsg: 'payment amount is not valid, payment cannot be less than .01 or more than credit limit'
       };
 
     // process the payment, if any step fails, rollback
@@ -468,8 +456,7 @@ app.post('/payment', Cors(corsOptions), async (req, res) => {
   * ADMIN ROUTES *
   ****************
 */
-app.options('/admin_login', Cors(corsOptions))
-app.post('/admin_login', Cors(corsOptions), async (req, res) => {
+router.post('/admin_login', async (req, res) => {
   let admin = req.body;
 
   // validate the password
@@ -485,8 +472,7 @@ app.post('/admin_login', Cors(corsOptions), async (req, res) => {
   }
 });
 
-app.options('/admin_auth', Cors(corsOptions))
-app.post('/admin_auth', Cors(corsOptions), async (req, res) => {
+router.post('/admin_auth', async (req, res) => {
   let admin = req.body;
   let auth = authenticateAdmin(admin);
 
@@ -494,8 +480,7 @@ app.post('/admin_auth', Cors(corsOptions), async (req, res) => {
   else res.json( {authorized: true} );
 });
 
-app.options('/admin_vendor_transactions/:name', Cors(corsOptions))
-app.post('/admin_vendor_transactions/:name', Cors(corsOptions), async (req, res) => {
+router.post('/admin_vendor_transactions/:name', async (req, res) => {
   let name = req.params.name;
   let admin = req.body;
   let auth = authenticateAdmin(admin);
@@ -556,8 +541,7 @@ app.post('/admin_vendor_transactions/:name', Cors(corsOptions), async (req, res)
   }
 });
 
-app.options('/admin_vendor_transaction_details', Cors(corsOptions))
-app.post('/admin_vendor_transaction_details', Cors(corsOptions), async (req, res) => {
+router.post('/admin_vendor_transaction_details', async (req, res) => {
   let admin = req.body;
   let auth = authenticateAdmin(admin);
   if(auth.error) {
@@ -568,8 +552,7 @@ app.post('/admin_vendor_transaction_details', Cors(corsOptions), async (req, res
   res.json(await getTransactionDetails(details.customerId, details.cardNumber, details.transactionId));
 });
 
-app.options('/admin_client_list', Cors(corsOptions))
-app.post('/admin_client_list', Cors(corsOptions), async (req, res) => {
+router.post('/admin_client_list', async (req, res) => {
   let admin = req.body;
   let auth = authenticateAdmin(admin);
   if(auth.error) {
@@ -587,8 +570,7 @@ app.post('/admin_client_list', Cors(corsOptions), async (req, res) => {
   }
 });
 
-app.options('/admin_client_cards', Cors(corsOptions))
-app.post('/admin_client_cards', Cors(corsOptions), async (req, res) => {
+router.post('/admin_client_cards', async (req, res) => {
   let admin = req.body;
   let auth = authenticateAdmin(admin);
   if(auth.error) {
@@ -598,8 +580,7 @@ app.post('/admin_client_cards', Cors(corsOptions), async (req, res) => {
   res.json(await getCards(admin.currentClient.customerId));
 });
 
-app.options('/admin_set_active', Cors(corsOptions))
-app.post('/admin_set_active', Cors(corsOptions), async (req, res) => {
+router.post('/admin_set_active', async (req, res) => {
   let admin = req.body;
   let auth = authenticateAdmin(admin);
   if(auth.error) {
@@ -626,8 +607,7 @@ app.post('/admin_set_active', Cors(corsOptions), async (req, res) => {
 });
 
 // gets a list of all transactions made by this card
-app.options('/admin_card_transactions', Cors(corsOptions))
-app.post('/admin_card_transactions', Cors(corsOptions), async (req, res) => {
+router.post('/admin_card_transactions', async (req, res) => {
   let admin = req.body;
   let client = admin.currentClient;
   let auth = authenticateAdmin(admin);
@@ -640,8 +620,7 @@ app.post('/admin_card_transactions', Cors(corsOptions), async (req, res) => {
 });
 
 // gets a list of all transactions made by this card
-app.options('/admin_transaction_details', Cors(corsOptions))
-app.post('/admin_transaction_details', Cors(corsOptions), async (req, res) => {
+router.post('/admin_transaction_details', async (req, res) => {
   let admin = req.body;
   let client = admin.currentClient;
   let auth = authenticateAdmin(admin);
