@@ -21,7 +21,7 @@ module.exports = [
             },
             {
                 "itemId": 3,
-                "name": "Into To Algorithmns 3rd Edition",
+                "name": "Intro To Algorithms 3rd Edition",
                 "description": "caution: mild altering properties",
                 "imgLink": "vendor_images/books/intro_to_algorithms.jpg",
                 "price": 140.70
